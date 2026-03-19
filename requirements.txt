@@ -1,4 +1,4 @@
-# Hand Galaxy v2.1 — Python dependencies
+# Hand Galaxy v2.2 — Python dependencies
 # Run: pip install -r requirements.txt
 
 # ── Core (v1) ───────────────────────────────────────────────────────────────
@@ -6,6 +6,9 @@ mediapipe>=0.10.9
 opencv-python>=4.9.0
 python-osc>=1.8.3
 numpy>=1.26.0
+pillow>=10.3.0
+mido>=1.3.2
+matplotlib>=3.8,<3.10
 
 # ── Optional speech recognition extras ──────────────────────────────────────
 # Install manually if you want live speech recognition:
@@ -16,3 +19,8 @@ numpy>=1.26.0
 # The app includes a built-in numpy fallback, so aubio is optional.
 # Install manually for the lowest-latency/highest-confidence backend:
 # aubio>=0.4.9
+
+# ── Optional MIDI hardware backend ──────────────────────────────────────────
+# mido is installed above; python-rtmidi unlocks real hardware output ports.
+# Install manually if you want MIDI output to external synths/controllers:
+# python-rtmidi>=1.5.8

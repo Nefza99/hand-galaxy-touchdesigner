@@ -92,6 +92,8 @@ class GestureFrame:
     frame_width: int
     frame_height: int
     active_hands: int
+    left: HandTelemetry
+    right: HandTelemetry
     primary: HandTelemetry
     secondary: HandTelemetry
 
@@ -175,6 +177,9 @@ class GestureEngine:
             if label not in seen:
                 self._decay_state(state, timestamp_ms)
 
+        left = self._to_telemetry("left", self._states.get("Left", HandState(label="Left")))
+        right = self._to_telemetry("right", self._states.get("Right", HandState(label="Right")))
+
         active = [self._to_telemetry(name, state) for name, state in self._states.items()]
         active.sort(
             key=lambda hand: (
@@ -197,6 +202,8 @@ class GestureEngine:
             frame_width=frame_width,
             frame_height=frame_height,
             active_hands=active_hands,
+            left=left,
+            right=right,
             primary=primary,
             secondary=secondary,
         )

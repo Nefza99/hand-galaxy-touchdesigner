@@ -1,11 +1,16 @@
-# TouchDesigner Network Setup  v2.1.3
+# TouchDesigner Network Setup  v2.2.0
 
-This extends the v2.0 guide with pitch and atmosphere nodes.
-All v1 and v2.0 wiring is unchanged.
+This extends the older guide with:
+
+- left/right independent hand zones
+- amplitude and phoneme buses
+- spawn count and rolling speech support
+- semantic colour zones for custom keyword categories
+- all existing pitch and atmosphere channels
 
 ---
 
-## New OSC Channels (v2.1)
+## New OSC Channels (v2.2)
 
 Python sends these every frame on port 7000.
 
@@ -30,6 +35,18 @@ Python sends these every frame on port 7000.
 /galaxy/atmosphere/fog             0-1   haze density
 /galaxy/atmosphere/burst_coeff     0-1   burst emission boost
 /galaxy/atmosphere/band            0-4   zone index
+```
+
+### New in v2.2
+
+```
+/galaxy/audio/amplitude            0-1   loudness lane
+/galaxy/audio/pulse                0-1   transient energy
+/galaxy/speech/banner_count        count of active sentence strips
+/galaxy/speech/phoneme/*           per-family phoneme intensity
+/galaxy/spawn/count                active spawned media count
+/galaxy/left_zone/*                left-hand semantic colour state
+/galaxy/right_zone/*               right-hand semantic colour state
 ```
 
 ---

@@ -1,12 +1,14 @@
-# start-hand-galaxy.ps1  v2.1.3
+# start-hand-galaxy.ps1  v2.2.0
 param(
     [switch]$VirtualCam,
     [switch]$NoPreview,
     [switch]$NoSpeech,
     [switch]$NoPitch,
     [switch]$NoAtmosphere,
+    [switch]$Midi,
     [switch]$SkipModelDownload,
     [string]$HighlightStyle = "glow",
+    [string]$MidiPort       = "",
     [float]$PitchWeight     = 0.6,
     [double]$MaxSeconds     = 0
 )
@@ -75,6 +77,14 @@ Write-Host 'Installing / updating dependencies...'
 & $python -m pip install --upgrade pip --quiet
 & $python -m pip install -r requirements.txt --quiet
 if ($LASTEXITCODE -ne 0) { throw 'Core dependency installation failed.' }
+Get-ChildItem '.venv\Lib\site-packages\matplotlib-3.10*.dist-info' -ErrorAction SilentlyContinue |
+    ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+& $python -m pip install "matplotlib>=3.8,<3.10" --ignore-installed --quiet
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Pinned matplotlib repair failed on the quiet pass. Retrying...'
+    & $python -m pip install "matplotlib>=3.8,<3.10" --ignore-installed
+    if ($LASTEXITCODE -ne 0) { throw 'Matplotlib compatibility install failed.' }
+}
 
 Write-Host 'Installing / updating speech dependencies...'
 $status = Invoke-NativeQuiet { & $python -m pip install "vosk>=0.3.45" --quiet }
@@ -99,6 +109,20 @@ if ($status -ne 0) {
     Write-Warning 'aubio could not be installed. The built-in numpy pitch fallback will be used.'
 }
 
+Write-Host 'Installing media helpers...'
+$status = Invoke-NativeQuiet { & $python -m pip install "pillow>=10.3.0" "mido>=1.3.2" --quiet }
+if ($status -ne 0) {
+    Write-Warning 'Pillow and/or mido could not be installed automatically.'
+}
+
+if ($Midi) {
+    Write-Host 'Installing optional MIDI backend...'
+    $status = Invoke-NativeQuiet { & $python -m pip install "python-rtmidi>=1.5.8" --quiet }
+    if ($status -ne 0) {
+        Write-Warning 'python-rtmidi could not be installed. MIDI mode may be unavailable.'
+    }
+}
+
 if ($VirtualCam -and (Test-Path 'requirements-virtualcam.txt')) {
     $status = Invoke-NativeQuiet { & $python -m pip install -r requirements-virtualcam.txt --quiet }
     if ($status -ne 0) {
@@ -120,6 +144,11 @@ if ($NoPreview)    { $argsList += '--no-preview' }
 if ($NoSpeech)     { $argsList += '--no-speech' }
 if ($NoPitch)      { $argsList += '--no-pitch' }
 if ($NoAtmosphere) { $argsList += '--no-atmosphere' }
+if ($Midi)         { $argsList += '--midi' }
+if ($MidiPort) {
+    $argsList += '--midi-port'
+    $argsList += $MidiPort
+}
 if ($MaxSeconds -gt 0) {
     $argsList += '--max-seconds'
     $argsList += "$MaxSeconds"
@@ -129,10 +158,11 @@ $argsList += '--pitch-weight';    $argsList += "$PitchWeight"
 
 Write-Host ''
 Write-Host '================================================'
-Write-Host '  Hand Galaxy v2.1.3 - starting'
+Write-Host '  Hand Galaxy v2.2.0 - starting'
 Write-Host "  Speech:    $(if ($NoSpeech) { 'off' } else { 'on' })"
 Write-Host "  Pitch:     $(if ($NoPitch)  { 'off' } else { "on  (weight $PitchWeight)" })"
 Write-Host "  Atmosphere:$(if ($NoAtmosphere) { 'off' } else { 'on' })"
+Write-Host "  MIDI:      $(if ($Midi) { $(if ($MidiPort) { "on  ($MidiPort)" } else { 'on' }) } else { 'off' })"
 Write-Host "  Highlight: $HighlightStyle"
 Write-Host '================================================'
 Write-Host ''

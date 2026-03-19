@@ -1,0 +1,19 @@
+{
+  "categories": [
+    {
+      "name": "ocean",
+      "theme": {
+        "hue": 0.55,
+        "accent_hue": 0.63,
+        "saturation": 0.9,
+        "value": 0.95,
+        "midi_note": 74
+      },
+      "entries": [
+        { "word": "orca", "asset": "whale", "aliases": ["killer whale"] },
+        { "word": "starfish", "asset": "jellyfish" },
+        { "word": "seahorse", "asset": "horse" }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 """
-osc_bridge.py  (v2.1)
+osc_bridge.py  (v2.2)
 ---------------------
-Extended OSC bridge — now sends pitch + atmospheric effect channels.
+Extended OSC bridge for hand zones, speech, audio, spawn, pitch, and atmosphere.
 """
 from __future__ import annotations
 from pythonosc.udp_client import SimpleUDPClient
@@ -22,6 +22,8 @@ class OscBridge:
         self._send("/galaxy/system/frame_width",   frame.frame_width)
         self._send("/galaxy/system/frame_height",  frame.frame_height)
         self._send("/galaxy/system/active_hands",  frame.active_hands)
+        self._send_hand("left",      frame.left)
+        self._send_hand("right",     frame.right)
         self._send_hand("primary",   frame.primary)
         self._send_hand("secondary", frame.secondary)
         self._send_hand("main",      frame.primary)
@@ -45,12 +47,19 @@ class OscBridge:
         self._send("/galaxy/speech/animal_id",      float(idx))
         self._animal_pulse = True
 
-    def send_effect_colour(self, r: float, g: float, b: float) -> None:
+    def send_effect_colour(self, colour_state) -> None:
+        r, g, b = colour_state.rgb_float
         self._send("/galaxy/effect/r", r)
         self._send("/galaxy/effect/g", g)
         self._send("/galaxy/effect/b", b)
+        self._send("/galaxy/effect/hue", colour_state.hue)
+        self._send("/galaxy/effect/saturation", colour_state.saturation)
+        self._send("/galaxy/effect/value", colour_state.value)
+        self._send("/galaxy/effect/amplitude", colour_state.amplitude)
+        self._send_zone("left_zone", colour_state.left_zone)
+        self._send_zone("right_zone", colour_state.right_zone)
 
-    # ── v2.1 — pitch + atmosphere ─────────────────────────────────────────
+    # ── v2.2 — pitch + audio + atmosphere ───────────────────────────────
 
     def send_pitch(self, hz: float, normalised: float,
                    band: int, confidence: float, velocity: float) -> None:
@@ -70,6 +79,24 @@ class OscBridge:
         self._send("/galaxy/atmosphere/fog",             cs.fog)
         self._send("/galaxy/atmosphere/burst_coeff",     cs.burst_coeff)
         self._send("/galaxy/atmosphere/band",            float(cs.band))
+        self._send("/galaxy/atmosphere/theme_category",  cs.theme_category or "")
+
+    def send_audio_features(self, audio_features) -> None:
+        self._send("/galaxy/audio/amplitude", audio_features.amplitude)
+        self._send("/galaxy/audio/peak", audio_features.peak)
+        self._send("/galaxy/audio/db", audio_features.decibels)
+        self._send("/galaxy/audio/pulse", audio_features.pulse)
+        self._send("/galaxy/audio/active", 1.0 if audio_features.active else 0.0)
+
+    def send_speech_state(self, partial_text: str, banner_count: int, phoneme_state) -> None:
+        self._send("/galaxy/speech/partial_length", float(len(partial_text or "")))
+        self._send("/galaxy/speech/banner_count", float(banner_count))
+        self._send("/galaxy/speech/phoneme/token_count", float(len(phoneme_state.tokens)))
+        for family, value in phoneme_state.family_levels.items():
+            self._send(f"/galaxy/speech/phoneme/{family}", value)
+
+    def send_spawn_state(self, spawn_count: int) -> None:
+        self._send("/galaxy/spawn/count", float(spawn_count))
 
     def flush_pulses(self) -> None:
         if self._letter_pulse:
@@ -113,5 +140,18 @@ class OscBridge:
                 self._send(f"{prefix}/trail/{idx}/x", point[0])
                 self._send(f"{prefix}/trail/{idx}/y", point[1])
 
-    def _send(self, address: str, value: float | int) -> None:
+    def _send_zone(self, slot: str, zone) -> None:
+        prefix = f"/galaxy/{slot}"
+        r, g, b = zone.rgb_float
+        self._send(f"{prefix}/active", 1.0 if zone.active else 0.0)
+        self._send(f"{prefix}/hue", zone.hue)
+        self._send(f"{prefix}/accent_hue", zone.accent_hue)
+        self._send(f"{prefix}/saturation", zone.saturation)
+        self._send(f"{prefix}/value", zone.value)
+        self._send(f"{prefix}/r", r)
+        self._send(f"{prefix}/g", g)
+        self._send(f"{prefix}/b", b)
+        self._send(f"{prefix}/category", zone.category or "")
+
+    def _send(self, address: str, value: float | int | str) -> None:
         self.client.send_message(address, value)

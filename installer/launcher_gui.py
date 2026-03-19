@@ -1,7 +1,7 @@
 """
 launcher_gui.py
 ---------------
-Tkinter-based GUI launcher for Hand Galaxy v2.1.
+Tkinter-based GUI launcher for Hand Galaxy v2.2.
 No external dependencies beyond Python's standard library.
 
 Run:
@@ -58,7 +58,7 @@ FONT_BTN = ("Consolas", 13, "bold")
 class LauncherApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Hand Galaxy v2.1.3 — Launcher")
+        self.title("Hand Galaxy v2.2.0 — Launcher")
         self.configure(bg=BG)
         self.resizable(False, False)
         self.geometry("640x580")
@@ -76,7 +76,7 @@ class LauncherApp(tk.Tk):
         hdr.pack(fill="x")
         tk.Label(hdr, text="✦  HAND GALAXY  ✦", font=FONT_LG,
                  fg=ACCENT, bg=BG).pack()
-        tk.Label(hdr, text="v2.1.3  │  Real-Time Audiovisual Interaction",
+        tk.Label(hdr, text="v2.2.0  │  Real-Time Audiovisual Interaction",
                  font=FONT_SM, fg=DIM, bg=BG).pack()
 
         # ── Divider
@@ -91,6 +91,7 @@ class LauncherApp(tk.Tk):
         self._var_pitch      = tk.BooleanVar(value=True)
         self._var_atm        = tk.BooleanVar(value=True)
         self._var_virtualcam = tk.BooleanVar(value=False)
+        self._var_midi       = tk.BooleanVar(value=False)
         self._var_mirror     = tk.BooleanVar(value=True)
         self._var_preview    = tk.BooleanVar(value=True)
 
@@ -99,6 +100,7 @@ class LauncherApp(tk.Tk):
             (self._var_pitch,      "🎵  Pitch detection  (voice → colour effects)", True),
             (self._var_atm,        "🌌  Atmospheric overlay effects",               True),
             (self._var_virtualcam, "📷  Virtual camera output  (for TouchDesigner)", False),
+            (self._var_midi,       "🎹  MIDI output  (pitch + gesture control)",    False),
             (self._var_mirror,     "🪞  Mirror webcam",                             True),
             (self._var_preview,    "🖥  Show preview window",                       True),
         ]
@@ -203,6 +205,8 @@ class LauncherApp(tk.Tk):
         pya_ok   = _venv_can_import("pyaudio")
         aubio_ok = _venv_can_import("aubio")
         vcam_ok  = _venv_can_import("pyvirtualcam")
+        midi_ok  = _venv_can_import("mido")
+        midi_backend_ok = _venv_can_import("rtmidi")
 
         self._log_write(f"  Core packages: {'✓' if not missing else '✗ missing: ' + ', '.join(missing)}\n")
         self._log_write(f"  Hand model:    {'✓' if model_ok else '↻ will auto-download on first run'}\n")
@@ -214,6 +218,7 @@ class LauncherApp(tk.Tk):
         else:
             self._log_write("  Pitch backend: ✗ microphone bridge missing\n")
         self._log_write(f"  Virtual cam:   {'✓ optional package installed' if vcam_ok else '○ optional package not installed'}\n")
+        self._log_write(f"  MIDI output:   {'✓ backend ready' if midi_ok and midi_backend_ok else '○ optional backend not installed'}\n")
 
         if missing:
             self._set_status("⚠  Incomplete install — run setup again", RED)
@@ -233,6 +238,8 @@ class LauncherApp(tk.Tk):
             args += ["--no-atmosphere"]
         if self._var_virtualcam.get():
             args += ["--virtual-cam"]
+        if self._var_midi.get():
+            args += ["--midi"]
         if not self._var_mirror.get():
             args += ["--no-mirror"]
         if not self._var_preview.get():
@@ -256,6 +263,13 @@ class LauncherApp(tk.Tk):
                 "Virtual Camera Not Installed",
                 "The optional pyvirtualcam package is not installed in .venv.\n"
                 "Run setup again, or install requirements-virtualcam.txt into the venv first.",
+            )
+            return
+        if self._var_midi.get() and not (_venv_can_import("mido") and _venv_can_import("rtmidi")):
+            messagebox.showerror(
+                "MIDI Backend Not Installed",
+                "MIDI output needs mido plus a backend such as python-rtmidi.\n"
+                "Run setup again, or install python-rtmidi into the venv first.",
             )
             return
 

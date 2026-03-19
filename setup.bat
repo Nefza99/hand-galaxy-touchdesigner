@@ -2,13 +2,13 @@
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
 
-title Hand Galaxy v2.1.3 Setup
+title Hand Galaxy v2.2.0 Setup
 
 cls
 echo.
 echo  ==============================================================
-echo           HAND GALAXY v2.1.3 - SETUP WIZARD
-echo       Hand Tracking + Speech + Pitch + Visuals
+echo           HAND GALAXY v2.2.0 - SETUP WIZARD
+echo    Hand Tracking + Speech + Pitch + Media + MIDI
 echo  ==============================================================
 echo.
 
@@ -115,18 +115,31 @@ echo  [3/7] Installing Python dependencies (may take 1-2 minutes)...
 %PYTHON% -m pip install --upgrade pip --quiet
 if errorlevel 1 goto pip_error
 
-%PYTHON% -m pip install mediapipe>=0.10.9 opencv-python>=4.9.0 python-osc>=1.8.3 numpy>=1.26.0 --quiet
+%PYTHON% -m pip install "mediapipe>=0.10.9" "opencv-python>=4.9.0" "python-osc>=1.8.3" "numpy>=1.26.0" "pillow>=10.3.0" "mido>=1.3.2" --quiet
 if errorlevel 1 (
     echo.
     echo  [WARNING] Core packages failed to install quietly.
     echo  Retrying with verbose output...
-    %PYTHON% -m pip install mediapipe>=0.10.9 opencv-python>=4.9.0 python-osc>=1.8.3 numpy>=1.26.0
+    %PYTHON% -m pip install "mediapipe>=0.10.9" "opencv-python>=4.9.0" "python-osc>=1.8.3" "numpy>=1.26.0" "pillow>=10.3.0" "mido>=1.3.2"
     if errorlevel 1 goto pip_error
 )
 echo  [OK] Core dependencies installed.
 
+echo  Repairing MediaPipe matplotlib dependency...
+for /d %%D in (".venv\Lib\site-packages\matplotlib-3.10*.dist-info") do (
+    echo  [INFO] Removing stale matplotlib metadata: %%~nxD
+    rmdir /s /q "%%~fD"
+)
+%PYTHON% -m pip install "matplotlib>=3.8,<3.10" --ignore-installed --quiet
+if errorlevel 1 (
+    echo  [WARNING] Quiet matplotlib recovery failed. Retrying with verbose output...
+    %PYTHON% -m pip install "matplotlib>=3.8,<3.10" --ignore-installed
+    if errorlevel 1 goto pip_error
+)
+echo  [OK] Matplotlib pin installed.
+
 echo  Installing Vosk (speech recognition)...
-%PYTHON% -m pip install vosk>=0.3.45 --quiet
+%PYTHON% -m pip install "vosk>=0.3.45" --quiet
 if errorlevel 1 (
     echo  [WARNING] vosk could not be installed.
     echo  Speech recognition will be disabled.
@@ -136,7 +149,7 @@ if errorlevel 1 (
 
 echo  Installing PyAudio (shared microphone input)...
 %PYTHON% -m pip install pipwin --quiet >nul 2>&1
-%PYTHON% -m pip install pyaudio>=0.2.14 --quiet
+%PYTHON% -m pip install "pyaudio>=0.2.14" --quiet
 if errorlevel 1 (
     echo  [INFO] Direct PyAudio install failed. Trying Windows wheel helper...
     %PYTHON% -m pipwin install pyaudio
@@ -158,6 +171,15 @@ if errorlevel 1 (
     echo    .venv\Scripts\python.exe -m pip install aubio
 ) else (
     echo  [OK] aubio installed.
+)
+
+echo  Installing optional MIDI backend...
+%PYTHON% -m pip install "python-rtmidi>=1.5.8" --quiet
+if errorlevel 1 (
+    echo  [INFO] python-rtmidi could not be installed.
+    echo  MIDI output will stay disabled until a backend is installed later.
+) else (
+    echo  [OK] python-rtmidi installed.
 )
 
 echo  Installing optional virtual camera support...
@@ -233,7 +255,7 @@ echo  [6/7] Creating launcher files...
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3
+echo title Hand Galaxy v2.2.0
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" -m hand_galaxy.main %%*
 echo if errorlevel 1 pause
@@ -243,7 +265,7 @@ echo  [OK] Launch.bat created.
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3 ^(Hands Only^)
+echo title Hand Galaxy v2.2.0 ^(Hands Only^)
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" -m hand_galaxy.main --no-speech --no-pitch %%*
 echo if errorlevel 1 pause
@@ -253,7 +275,7 @@ echo  [OK] Launch-NoSpeech.bat created.
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3 ^(No Pitch^)
+echo title Hand Galaxy v2.2.0 ^(No Pitch^)
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" -m hand_galaxy.main --no-pitch %%*
 echo if errorlevel 1 pause
@@ -263,7 +285,7 @@ echo  [OK] Launch-NoPitch.bat created.
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3 ^(Minimal^)
+echo title Hand Galaxy v2.2.0 ^(Minimal^)
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" -m hand_galaxy.main --no-speech --no-pitch --no-atmosphere %%*
 echo if errorlevel 1 pause
@@ -273,7 +295,7 @@ echo  [OK] Launch-Minimal.bat created.
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3 - Auto Safe
+echo title Hand Galaxy v2.2.0 - Auto Safe
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" installer\launch_helper.py %%*
 echo if errorlevel 1 pause
@@ -283,7 +305,7 @@ echo  [OK] Launch-Auto.bat created.
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo title Hand Galaxy v2.1.3 ^(Virtual Cam^)
+echo title Hand Galaxy v2.2.0 ^(Virtual Cam^)
 echo set PYTHONPATH=%%~dp0src
 echo ".venv\Scripts\python.exe" -m hand_galaxy.main --virtual-cam %%*
 echo if errorlevel 1 pause
@@ -306,7 +328,7 @@ powershell -ExecutionPolicy Bypass -Command ^
     "$sc = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Hand Galaxy.lnk'); " ^
     "$sc.TargetPath = '%~dp0Launcher.bat'; " ^
     "$sc.WorkingDirectory = '%~dp0'; " ^
-    "$sc.Description = 'Hand Galaxy v2.1.3'; " ^
+    "$sc.Description = 'Hand Galaxy v2.2.0'; " ^
     "$sc.Save()" 2>nul
 if errorlevel 1 (
     echo  [INFO] Desktop shortcut skipped.
@@ -327,6 +349,11 @@ echo    Launch-NoSpeech.bat   - Hands only, no mic
 echo    Launch-NoPitch.bat    - Speech on, pitch off
 echo    Launch-Minimal.bat    - No mic, minimal visuals
 echo    Launch-VirtualCam.bat - Virtual camera mode
+echo.
+echo  Optional:
+echo    Launch-Auto.bat --midi         - enable MIDI output
+echo    Add custom keyword JSON files to: assets\keywords\
+echo    Add GIFs or sprite manifests to the matching asset folders
 echo.
 echo  Add animal images to: assets\animals\
 echo  TouchDesigner setup: see touchdesigner\NETWORK_SETUP.md

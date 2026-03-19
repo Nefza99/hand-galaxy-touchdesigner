@@ -1,4 +1,4 @@
-"""config.py  v2.1 — all settings including pitch."""
+"""config.py  v2.2 — all settings including media, audio, and MIDI."""
 from __future__ import annotations
 import argparse, urllib.request
 from dataclasses import dataclass
@@ -10,6 +10,7 @@ PROJECT_ROOT      = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "models" / "hand_landmarker.task"
 DEFAULT_VOSK_PATH  = PROJECT_ROOT / "models" / "vosk" / "vosk-model-small-en-us-0.15"
 DEFAULT_ASSETS_DIR = PROJECT_ROOT / "assets"
+DEFAULT_KEYWORDS_DIR = DEFAULT_ASSETS_DIR / "keywords"
 
 
 @dataclass(slots=True)
@@ -62,6 +63,7 @@ class AppConfig:
     animal_display_duration: float = 6.0
     # Assets
     assets_dir:         Path           = DEFAULT_ASSETS_DIR
+    keywords_dir:       Path           = DEFAULT_KEYWORDS_DIR
     image_display_size: tuple[int,int] = (320, 320)
     highlight_style:    str            = "glow"
     # Pitch detection
@@ -73,10 +75,13 @@ class AppConfig:
     vocal_high_hz:           float = 1100.0
     # Atmosphere
     atmosphere_enabled: bool = True
+    # MIDI
+    midi_enabled: bool = False
+    midi_port: str | None = None
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Hand Galaxy v2.1")
+    p = argparse.ArgumentParser(description="Hand Galaxy v2.2")
     p.add_argument("--model-path",            type=Path,  default=DEFAULT_MODEL_PATH)
     p.add_argument("--camera-index",          type=int,   default=0)
     p.add_argument("--frame-width",           type=int,   default=1280)
@@ -106,12 +111,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--animal-cooldown",       type=float, default=4.0)
     p.add_argument("--animal-display-duration", type=float, default=6.0)
     p.add_argument("--assets-dir",            type=Path,  default=DEFAULT_ASSETS_DIR)
+    p.add_argument("--keywords-dir",          type=Path,  default=DEFAULT_KEYWORDS_DIR)
     p.add_argument("--highlight-style",       default="glow",
                    choices=["glow","rim","aura","tint"])
     p.add_argument("--no-pitch",              action="store_true")
     p.add_argument("--pitch-confidence-thresh", type=float, default=0.50)
     p.add_argument("--pitch-weight",          type=float, default=0.60)
     p.add_argument("--no-atmosphere",         action="store_true")
+    p.add_argument("--midi",                  action="store_true")
+    p.add_argument("--midi-port",             default=None)
     return p
 
 
@@ -147,11 +155,14 @@ def config_from_args(argv=None) -> AppConfig:
         animal_cooldown=args.animal_cooldown,
         animal_display_duration=args.animal_display_duration,
         assets_dir=args.assets_dir,
+        keywords_dir=args.keywords_dir,
         highlight_style=args.highlight_style,
         pitch_enabled=not args.no_pitch,
         pitch_confidence_thresh=args.pitch_confidence_thresh,
         pitch_weight=args.pitch_weight,
         atmosphere_enabled=not args.no_atmosphere,
+        midi_enabled=args.midi,
+        midi_port=args.midi_port,
     )
 
 

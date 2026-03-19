@@ -130,6 +130,35 @@ class AudioAndLaunchTests(unittest.TestCase):
             self.assertIn("--no-speech", command)
             self.assertIn("--no-pitch", command)
 
+    def test_launch_helper_strips_midi_flag_without_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            python_exe = root / "python.exe"
+            python_exe.write_text("", encoding="utf-8")
+
+            with (
+                patch.object(launch_helper, "ROOT", root),
+                patch.object(launch_helper, "PYTHON", python_exe),
+                patch.object(
+                    launch_helper,
+                    "can_import",
+                    side_effect=lambda mod: {
+                        "pyaudio": True,
+                        "vosk": True,
+                        "aubio": True,
+                        "mido": True,
+                        "rtmidi": False,
+                        "pygame.midi": False,
+                    }.get(mod, True),
+                ),
+                patch("installer.launch_helper.subprocess.call", return_value=0) as call_mock,
+            ):
+                rc = launch_helper.main(["--midi"])
+
+            self.assertEqual(rc, 0)
+            command = call_mock.call_args.args[0]
+            self.assertNotIn("--midi", command)
+
 
 if __name__ == "__main__":
     unittest.main()

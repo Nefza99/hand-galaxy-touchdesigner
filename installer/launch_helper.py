@@ -18,6 +18,8 @@ def main(argv: list[str]) -> int:
     pya = can_import('pyaudio')
     vosk = can_import('vosk') and (ROOT / 'models' / 'vosk' / 'vosk-model-small-en-us-0.15').exists()
     aub = can_import('aubio')
+    midi = can_import('mido')
+    midi_backend = can_import('rtmidi') or can_import('pygame.midi')
     if (not pya or not vosk) and '--no-speech' not in args:
         print('[INFO] Speech dependencies missing; launching with --no-speech')
         args.append('--no-speech')
@@ -26,6 +28,9 @@ def main(argv: list[str]) -> int:
     if (not pya) and '--no-pitch' not in args:
         print('[INFO] Microphone dependency missing; launching with --no-pitch')
         args.append('--no-pitch')
+    if '--midi' in args and (not midi or not midi_backend):
+        print('[INFO] MIDI backend missing; launching without --midi')
+        args = [arg for arg in args if arg != '--midi']
     cmd = [str(PYTHON), '-m', 'hand_galaxy.main', *args]
     env = os.environ.copy()
     env['PYTHONPATH'] = str(SRC)

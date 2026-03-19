@@ -46,11 +46,11 @@ from tkinter import filedialog, messagebox, ttk
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 APP_NAME    = "Hand Galaxy"
-APP_VER     = "2.1.3"
+APP_VER     = "2.2.0"
 APP_SLUG    = "HandGalaxy"
 PUBLISHER   = "Hand Galaxy Project"
-HELP_URL    = "https://github.com/hand-galaxy"
-UPDATE_URL  = "https://github.com/hand-galaxy"
+HELP_URL    = "https://github.com/Nefza99/hand-galaxy-touchdesigner"
+UPDATE_URL  = "https://github.com/Nefza99/hand-galaxy-touchdesigner"
 
 # Default install root — user's home / Hand Galaxy
 DEFAULT_INSTALL = pathlib.Path.home() / "Hand Galaxy"
@@ -333,7 +333,7 @@ class WelcomePage(Page):
             "The setup will:\n"
             "   ✦  Verify or install Python 3.10+\n"
             "   ✦  Create an isolated Python virtual environment\n"
-            "   ✦  Install MediaPipe, OpenCV, Vosk, audio bridge, and optional aubio\n"
+            "   ✦  Install MediaPipe, OpenCV, Vosk, audio bridge, media helpers, and optional aubio/MIDI backend\n"
             "   ✦  Download the hand landmark model (~9 MB)\n"
             "   ✦  Download the Vosk speech model (~40 MB)\n"
             "   ✦  Create Desktop and Start Menu shortcuts\n"
@@ -847,10 +847,37 @@ class InstallPage(Page):
         self._emit("sub", pct=100)
 
         # ── Step 5: Core dependencies ────────────────────────────────────
-        self._step("Installing core dependencies (mediapipe, opencv, osc, numpy)…", 28)
-        core_pkgs = ["mediapipe>=0.10.9", "opencv-python>=4.9.0",
-                     "python-osc>=1.8.3", "numpy>=1.26.0"]
+        self._step("Installing core dependencies (mediapipe, opencv, osc, numpy, pillow, mido)…", 28)
+        core_pkgs = [
+            "mediapipe>=0.10.9",
+            "opencv-python>=4.9.0",
+            "python-osc>=1.8.3",
+            "numpy>=1.26.0",
+            "pillow>=10.3.0",
+            "mido>=1.3.2",
+        ]
         self._pip_install(python_exe, core_pkgs, pct_start=28, pct_end=45)
+
+        self._step("Repairing pinned matplotlib dependency…", 45)
+        self._log("    pip install matplotlib>=3.8,<3.10 --ignore-installed\n")
+        site_packages = python_exe.parent.parent / "Lib" / "site-packages"
+        for stale in site_packages.glob("matplotlib-3.10*.dist-info"):
+            shutil.rmtree(stale, ignore_errors=True)
+        result = subprocess.run(
+            [str(python_exe), "-m", "pip", "install", "matplotlib>=3.8,<3.10", "--ignore-installed", "--quiet"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            self._log("    Quiet repair failed, retrying verbose install.\n")
+            result = subprocess.run(
+                [str(python_exe), "-m", "pip", "install", "matplotlib>=3.8,<3.10", "--ignore-installed"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                self._log(f"    [WARN] {result.stderr.strip() or result.stdout.strip()}\n")
+        self._emit("overall", pct=46)
 
         # ── Step 6: Speech ───────────────────────────────────────────────
         if s.comp_speech:
@@ -884,6 +911,14 @@ class InstallPage(Page):
                 self._log(f"  WARNING: aubio could not be installed: {exc}\n")
                 self._log("  Hand Galaxy will use the built-in numpy pitch fallback instead.\n")
                 self._emit("overall", pct=60)
+
+        self._step("Installing optional MIDI backend…", 60)
+        try:
+            self._pip_install(python_exe, ["python-rtmidi>=1.5.8"], pct_start=60, pct_end=61)
+        except Exception as exc:
+            self._log(f"  WARNING: python-rtmidi could not be installed: {exc}\n")
+            self._log("  MIDI output will stay disabled until a backend is added later.\n")
+            self._emit("overall", pct=61)
 
         # ── Step 7b: Optional virtual camera support ────────────────────
         self._step("Installing optional virtual camera support…", 60)
