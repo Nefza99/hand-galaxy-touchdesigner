@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pythonosc.udp_client import SimpleUDPClient
 
-from .gestures import GestureFrame, HandTelemetry
+from .gestures import FusionTelemetry, GestureFrame, HandTelemetry
 
 
 class OscBridge:
@@ -18,6 +18,7 @@ class OscBridge:
         self._send_hand("primary", frame.primary)
         self._send_hand("secondary", frame.secondary)
         self._send_hand("main", frame.primary)
+        self._send_fusion("fusion", frame.fusion)
 
     def _send_hand(self, slot: str, hand: HandTelemetry) -> None:
         prefix = f"/galaxy/{slot}"
@@ -49,6 +50,21 @@ class OscBridge:
             "energy": hand.energy,
             "depth": hand.depth,
             "angle": hand.angle,
+            "hue": hand.hue,
+            "accent_hue": hand.accent_hue,
+            "saturation": hand.saturation,
+            "value": hand.value,
+            "color_r": hand.color_r,
+            "color_g": hand.color_g,
+            "color_b": hand.color_b,
+            "palette": hand.palette,
+            "shimmer": hand.shimmer,
+            "ribbon": hand.ribbon,
+            "flare": hand.flare,
+            "vortex": hand.vortex,
+            "turbulence": hand.turbulence,
+            "halo": hand.halo,
+            "pulse": hand.pulse,
             "pinch_active": 1.0 if hand.pinch_active else 0.0,
             "open": 1.0 if hand.open_state else 0.0,
             "just_pinched": 1.0 if hand.just_pinched else 0.0,
@@ -66,6 +82,30 @@ class OscBridge:
             for idx, point in enumerate(hand.trail[-8:]):
                 self._send(f"{prefix}/trail/{idx}/x", point[0])
                 self._send(f"{prefix}/trail/{idx}/y", point[1])
+
+    def _send_fusion(self, slot: str, fusion: FusionTelemetry) -> None:
+        prefix = f"/galaxy/{slot}"
+        values = {
+            "active": 1.0 if fusion.active else 0.0,
+            "x": fusion.x,
+            "y": fusion.y,
+            "distance": fusion.distance,
+            "angle": fusion.angle,
+            "converge": fusion.converge,
+            "symmetry": fusion.symmetry,
+            "bridge": fusion.bridge,
+            "bloom": fusion.bloom,
+            "vortex": fusion.vortex,
+            "chaos": fusion.chaos,
+            "pulse": fusion.pulse,
+            "hue": fusion.hue,
+            "accent_hue": fusion.accent_hue,
+            "color_r": fusion.color_r,
+            "color_g": fusion.color_g,
+            "color_b": fusion.color_b,
+        }
+        for key, value in values.items():
+            self._send(f"{prefix}/{key}", value)
 
     def _send(self, address: str, value: float | int) -> None:
         self.client.send_message(address, value)

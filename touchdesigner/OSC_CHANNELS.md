@@ -11,7 +11,7 @@ All addresses arrive over UDP OSC on port `7000`.
 
 ## Main Alias
 
-Use these first for the MVP.
+Use these first for the fastest build.
 
 - `/galaxy/main/active`
 - `/galaxy/main/x`
@@ -23,6 +23,19 @@ Use these first for the MVP.
 - `/galaxy/main/burst`
 - `/galaxy/main/energy`
 - `/galaxy/main/depth`
+- `/galaxy/main/hue`
+- `/galaxy/main/accent_hue`
+- `/galaxy/main/color_r`
+- `/galaxy/main/color_g`
+- `/galaxy/main/color_b`
+- `/galaxy/main/palette`
+- `/galaxy/main/shimmer`
+- `/galaxy/main/ribbon`
+- `/galaxy/main/flare`
+- `/galaxy/main/vortex`
+- `/galaxy/main/turbulence`
+- `/galaxy/main/halo`
+- `/galaxy/main/pulse`
 - `/galaxy/main/just_pinched`
 - `/galaxy/main/just_released`
 - `/galaxy/main/pinch_active`
@@ -64,11 +77,50 @@ Shared fields under those namespaces:
 - `energy`
 - `depth`
 - `angle`
+- `hue`
+- `accent_hue`
+- `saturation`
+- `value`
+- `color_r`
+- `color_g`
+- `color_b`
+- `palette`
+- `shimmer`
+- `ribbon`
+- `flare`
+- `vortex`
+- `turbulence`
+- `halo`
+- `pulse`
 - `pinch_active`
 - `open`
 - `just_pinched`
 - `just_released`
 - `trail_len`
+
+## Fusion Namespace
+
+Two-hand interaction is sent under:
+
+- `/galaxy/fusion/active`
+- `/galaxy/fusion/x`
+- `/galaxy/fusion/y`
+- `/galaxy/fusion/distance`
+- `/galaxy/fusion/angle`
+- `/galaxy/fusion/converge`
+- `/galaxy/fusion/symmetry`
+- `/galaxy/fusion/bridge`
+- `/galaxy/fusion/bloom`
+- `/galaxy/fusion/vortex`
+- `/galaxy/fusion/chaos`
+- `/galaxy/fusion/pulse`
+- `/galaxy/fusion/hue`
+- `/galaxy/fusion/accent_hue`
+- `/galaxy/fusion/color_r`
+- `/galaxy/fusion/color_g`
+- `/galaxy/fusion/color_b`
+
+## Optional Landmark Output
 
 If `--send-landmarks` is enabled, each hand also sends:
 
@@ -80,13 +132,24 @@ If `--send-landmarks` is enabled, each hand also sends:
 
 ## Suggested TouchDesigner Mappings
 
-- `x`: map `0..1` to your render-space X range
-- `y`: invert and map `0..1` to your render-space Y range
-- `pinch`: use for inner brightness and compression
-- `radius`: use for orbit radius and overall scale
-- `velocity`: use for turbulence, noise amount, and streak length
-- `spin`: use for angular speed or UV rotation
-- `burst`: use for pulse gain, particle emission spikes, and feedback hits
-- `energy`: use for trail persistence and bloom intensity
-- `depth`: reserve for depth layering or segmentation later
-
+- `x`, `y`: tracked render center
+- `pinch`: core intensity and particle compression
+- `radius`: overall spread and orbit multiplier
+- `velocity`: turbulence, streak length, and particle drift
+- `spin`: angular orbit speed or UV rotation
+- `burst`: one-shot flashes, particle spikes, and feedback hits
+- `energy`: trail persistence and bloom intensity
+- `hue`, `accent_hue`: base and secondary color control
+- `color_r/g/b`: direct RGB drive for material or TOP color
+- `palette`: select or blend between palette rows
+- `shimmer`: sparkle density, twinkle masks, or spec hits
+- `ribbon`: trail thickness, line opacity, or longer streak particles
+- `flare`: core flare size and white-hot highlight gain
+- `vortex`: inward pull, swirl power, or corkscrew deformation
+- `turbulence`: noise amount, displace strength, or field chaos
+- `halo`: blur radius, outer glow size, and aura scale
+- `pulse`: low-frequency gain wobble or rhythmic scale pulse
+- `fusion/bridge`: beam opacity between hands
+- `fusion/bloom`: midpoint orb intensity
+- `fusion/converge`: drive portals or merge-state transitions
+- `fusion/chaos`: destabilize shapes when hands fight each other

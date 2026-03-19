@@ -2,15 +2,16 @@
 
 Real-time hand tracking in Python with MediaPipe, streaming expressive OSC controls into TouchDesigner for a glowing, feedback-heavy galaxy effect.
 
-Current release version: `1.0.0`
+Current release version: `1.1.0`
 
 ## What You Get
 
 - Live webcam hand tracking with MediaPipe Hand Landmarker in `LIVE_STREAM` mode
-- Smoothed `midpoint`, `pinch`, `velocity`, `spin`, `burst`, `energy`, and `depth` channels over OSC
-- Support for one or two hands
+- Smoothed OSC controls for position, pinch, velocity, spin, burst, glow, ribbons, shimmer, turbulence, and pulse
+- Rich color telemetry per hand: `hue`, `accent_hue`, `color_r/g/b`, `palette`, `saturation`, `value`
+- A two-hand `fusion` bus for portal beams, midpoint blooms, chaos, and convergence effects
 - Optional virtual camera output so TouchDesigner can still ingest a live feed while Python owns the physical webcam
-- A TouchDesigner build guide, OSC map, and DAT helper script for procedural galaxy instances
+- TouchDesigner build docs, palette/effect recipes, and DAT helper scripts for procedural galaxy instances
 
 ## Project Layout
 
@@ -27,9 +28,11 @@ hand-galaxy-touchdesigner/
     osc_bridge.py
     virtual_camera.py
   touchdesigner/
+    EFFECT_RECIPES.md
     NETWORK_SETUP.md
     OSC_CHANNELS.md
     dat_scripts/
+      generate_palette_table.py
       generate_spiral_table.py
 ```
 
@@ -37,7 +40,7 @@ hand-galaxy-touchdesigner/
 
 If you downloaded the GitHub Release installer:
 
-1. Run `HandGalaxyTouchDesigner-Setup-v1.0.0.exe`.
+1. Run `HandGalaxyTouchDesigner-Setup-v1.1.0.exe`.
 2. After install, double-click `Hand Galaxy` on your Desktop.
 3. Press `1` for the easiest first run in camera-preview mode.
 4. Press `2` only if you already have `OBS Virtual Camera` or `UnityCapture` installed for TouchDesigner.
@@ -88,7 +91,7 @@ python -m hand_galaxy.main --virtual-cam
 
 ## Core OSC Controls
 
-The MVP TouchDesigner rig only needs the `main` alias:
+The MVP rig still starts with the `main` alias:
 
 - `/galaxy/main/x`
 - `/galaxy/main/y`
@@ -98,10 +101,17 @@ The MVP TouchDesigner rig only needs the `main` alias:
 - `/galaxy/main/spin`
 - `/galaxy/main/burst`
 - `/galaxy/main/energy`
-- `/galaxy/main/depth`
-- `/galaxy/main/just_released`
+- `/galaxy/main/hue`
+- `/galaxy/main/accent_hue`
+- `/galaxy/main/shimmer`
+- `/galaxy/main/ribbon`
+- `/galaxy/main/flare`
+- `/galaxy/main/vortex`
+- `/galaxy/main/turbulence`
+- `/galaxy/main/halo`
+- `/galaxy/main/pulse`
 
-There are also `/galaxy/primary/*` and `/galaxy/secondary/*` paths for two-hand interaction.
+There are also `/galaxy/primary/*`, `/galaxy/secondary/*`, and `/galaxy/fusion/*` paths for two-hand interaction.
 
 Full channel details live in [touchdesigner/OSC_CHANNELS.md](touchdesigner/OSC_CHANNELS.md).
 
@@ -119,28 +129,29 @@ Note: the release installer includes `pyvirtualcam`, but Windows still needs a v
 
 Use [touchdesigner/NETWORK_SETUP.md](touchdesigner/NETWORK_SETUP.md) as the wiring guide.
 
-The short version:
+Then use:
 
-1. Bring OSC in on port `7000`.
-2. Smooth and map `main/x`, `main/y`, `main/pinch`, `main/velocity`, `main/spin`.
-3. Generate a spiral instance table with the helper DAT script.
-4. Instance particles around the tracked center.
-5. Add blur, level, feedback, and additive composite.
-6. Feed `burst` into emission, glow gain, or feedback mix for the magic hit.
+- [touchdesigner/OSC_CHANNELS.md](touchdesigner/OSC_CHANNELS.md) for the full OSC map
+- [touchdesigner/EFFECT_RECIPES.md](touchdesigner/EFFECT_RECIPES.md) for ready-made visual directions
+- [touchdesigner/dat_scripts/generate_spiral_table.py](touchdesigner/dat_scripts/generate_spiral_table.py) for richer particle layouts
+- [touchdesigner/dat_scripts/generate_palette_table.py](touchdesigner/dat_scripts/generate_palette_table.py) for palette DATs
 
 ## Recommended First Pass
 
 - One hand only
-- Virtual camera on
-- `640-900` instances
+- `780-1200` instances
 - `1-2` low-res blur passes
-- feedback amount tied to `energy`
-- burst tied to release, not continuous pinch
+- `hue/accent_hue` driving color
+- `halo` driving bloom radius
+- `ribbon` driving trail persistence
+- `burst` and `flare` driving central hit flashes
+- `fusion/bridge` reserved for the two-hand upgrade
 
 ## Tuning Notes
 
 - Lower camera resolution first if latency climbs.
 - Smooth the OSC controls, not the camera image.
 - `pinch` is normalized so closed is near `1.0`.
-- `radius` is already shaped for visible scale changes.
 - `spin` comes from thumb/index angular change, which feels better than simple left-right speed for swirling particles.
+- `hue` and `accent_hue` are intentionally broad so you can move across a lot of the color wheel without switching systems.
+- `fusion/*` is where the more dramatic “portal between hands” looks start to happen.

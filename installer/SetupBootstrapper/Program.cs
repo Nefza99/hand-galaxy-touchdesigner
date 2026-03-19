@@ -8,7 +8,7 @@ namespace HandGalaxySetup;
 internal static class Program
 {
     private const string AppName = "Hand Galaxy TouchDesigner";
-    private const string AppVersion = "1.0.0";
+    private const string AppVersion = "1.1.0";
     private const string PythonEmbedUrl = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip";
     private const string GetPipUrl = "https://bootstrap.pypa.io/get-pip.py";
     private const string ModelUrl = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
@@ -338,6 +338,7 @@ endlocal
             "",
             "TouchDesigner setup docs:",
             $"  {Path.Combine(installRoot, "app", "touchdesigner", "NETWORK_SETUP.md")}",
+            $"  {Path.Combine(installRoot, "app", "touchdesigner", "EFFECT_RECIPES.md")}",
             "",
             "TouchDesigner mode note:",
             "  The installer includes pyvirtualcam, but Windows still needs a virtual-camera backend.",
