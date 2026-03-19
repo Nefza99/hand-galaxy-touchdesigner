@@ -1,5 +1,11 @@
 .venv/
 __pycache__/
 *.pyc
-models/*.task
-
+*.pyo
+*.egg-info/
+dist/
+build/
+models/hand_landmarker.task
+models/vosk/
+*.zip
+*.log

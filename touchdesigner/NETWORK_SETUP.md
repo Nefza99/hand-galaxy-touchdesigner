@@ -1,258 +1,165 @@
-# TouchDesigner Network Setup
+# TouchDesigner Network Setup  v2.1.3
 
-This is the fastest strong-looking build path for the upgraded effect pack.
+This extends the v2.0 guide with pitch and atmosphere nodes.
+All v1 and v2.0 wiring is unchanged.
 
-## 1. Camera Branch
+---
 
-Use one of these:
+## New OSC Channels (v2.1)
 
-- `videodevicein1` pointed at your normal webcam
-- `videodevicein1` pointed at the virtual camera produced by the Python app
+Python sends these every frame on port 7000.
 
-Rename it to `cam_in`.
+### Pitch
 
-Then:
-
-```text
-cam_in -> null_cam
+```
+/galaxy/pitch/hz            raw fundamental frequency in Hz
+/galaxy/pitch/normalised    0-1 within the user's vocal range
+/galaxy/pitch/band          0-4 atmosphere zone index
+/galaxy/pitch/confidence    0-1 aubio YIN confidence
+/galaxy/pitch/velocity      Hz/s — positive = rising pitch
 ```
 
-## 2. OSC Branch
+### Atmosphere (pre-mapped, ready to wire)
 
-Create:
-
-```text
-oscin1 -> null_osc_raw
+```
+/galaxy/atmosphere/feedback        0-1   trail persistence
+/galaxy/atmosphere/particle_speed  0-1   orbit speed multiplier
+/galaxy/atmosphere/bloom           0-1   glow / brightness
+/galaxy/atmosphere/vignette        0-1   dark edge crush
+/galaxy/atmosphere/shimmer         0-1   sparkle intensity
+/galaxy/atmosphere/fog             0-1   haze density
+/galaxy/atmosphere/burst_coeff     0-1   burst emission boost
+/galaxy/atmosphere/band            0-4   zone index
 ```
 
-Set `oscin1`:
+---
 
-- Network Port: `7000`
-- Protocol: UDP
+## Minimal v2.1 Node Additions
 
-Create `Select CHOP`s or `Rename CHOP`s for these channels first:
+### 1. Atmosphere Select CHOP
 
-- `galaxy_main_x`
-- `galaxy_main_y`
-- `galaxy_main_pinch`
-- `galaxy_main_radius`
-- `galaxy_main_velocity`
-- `galaxy_main_spin`
-- `galaxy_main_burst`
-- `galaxy_main_energy`
-- `galaxy_main_hue`
-- `galaxy_main_accent_hue`
-- `galaxy_main_shimmer`
-- `galaxy_main_ribbon`
-- `galaxy_main_flare`
-- `galaxy_main_vortex`
-- `galaxy_main_turbulence`
-- `galaxy_main_halo`
-- `galaxy_main_pulse`
-- `galaxy_fusion_bridge`
-- `galaxy_fusion_bloom`
-- `galaxy_fusion_converge`
+Create **Select CHOP** named `select_atmosphere`:
+- Channels: all `/galaxy/atmosphere/*` channels
 
-Then add:
-
-```text
-select_main -> math_main -> lag_main -> null_main_ctrl
+```
+select_atmosphere  →  lag_atmosphere  →  null_atmosphere_ctrl
 ```
 
-Suggested mapping in `math_main`:
+`lag_atmosphere` settings: 0.06 on all channels — matches Python smoothing speed.
 
-- `x`: from `0..1` to `-0.95..0.95`
-- `y`: from `0..1` to `0.55..-0.55`
-- `radius`: from `0..1` to `0.08..0.64`
-- `velocity`: from `0..2.2` to `0..1`
-- `spin`: keep centered, maybe clamp to `-3..3`
-- `burst`, `energy`, `shimmer`, `ribbon`, `flare`, `vortex`, `turbulence`, `halo`, `pulse`: clamp to `0..1`
-- `hue`, `accent_hue`: leave in `0..1`
-- `fusion_bridge`, `fusion_bloom`, `fusion_converge`: clamp to `0..1`
+### 2. Pitch Select CHOP
 
-Use `Lag CHOP` so position is silky but not mushy:
+Create **Select CHOP** named `select_pitch`:
+- Channels: all `/galaxy/pitch/*` channels
 
-- `x/y`: `0.08 - 0.14`
-- `radius`: `0.05 - 0.08`
-- `velocity/spin`: `0.04 - 0.08`
-- `burst/flare`: `0.02 - 0.05`
-- `halo/pulse/ribbon/shimmer`: `0.05 - 0.09`
+```
+select_pitch  →  null_pitch_ctrl
+```
 
-## 3. Palette DAT
+No lag needed — Python already smooths pitch.
 
-Create a `Table DAT` named `galaxy_palettes`.
+### 3. Wire Atmosphere to Galaxy Controls
 
-Add a `Text DAT` and paste in:
+Replace hardcoded values in your existing network:
 
-[dat_scripts/generate_palette_table.py](dat_scripts/generate_palette_table.py)
+| Was hardcoded | Now driven by |
+|---|---|
+| Feedback TOP opacity | `null_atmosphere_ctrl[galaxy_atmosphere_feedback]` |
+| Level TOP brightness | `null_atmosphere_ctrl[galaxy_atmosphere_bloom]` |
+| Orbit speed Math | `null_atmosphere_ctrl[galaxy_atmosphere_particle_speed]` |
+| Burst gain | `null_atmosphere_ctrl[galaxy_atmosphere_burst_coeff]` |
 
-Run:
+In a **Script CHOP** or **DAT Execute**:
 
 ```python
-build(op('galaxy_palettes'))
+feedback = op('null_atmosphere_ctrl')['galaxy_atmosphere_feedback']
+bloom    = op('null_atmosphere_ctrl')['galaxy_atmosphere_bloom']
+speed    = op('null_atmosphere_ctrl')['galaxy_atmosphere_particle_speed']
+
+op('feedback1').par.top    = ...   # use feedback value
+op('level1').par.brightness = bloom * 2.0 - 1.0
 ```
 
-This gives you six strong palette families you can blend with `main/palette` or bypass completely and use the direct `color_r/g/b` OSC channels.
+### 4. Band-Conditional Effects (optional)
 
-## 4. Galaxy Instance Source
-
-Create a `Table DAT` named `galaxy_instances`.
-
-Add a `Text DAT` and paste in:
-
-[dat_scripts/generate_spiral_table.py](dat_scripts/generate_spiral_table.py)
-
-Run:
+Wire `band` channel to a **Switch COMP** or use in a DAT Execute for
+per-band TD logic:
 
 ```python
-build(op('galaxy_instances'), count=1080, arms=6, turns=7.6)
+band = int(op('null_atmosphere_ctrl')['galaxy_atmosphere_band'])
+
+band_colours = {
+    0: (0.05, 0.0,  0.12),   # void    — near black/indigo
+    1: (0.10, 0.02, 0.35),   # deep    — violet
+    2: (0.05, 0.60, 0.55),   # flowing — teal
+    3: (0.95, 0.55, 0.05),   # radiant — orange
+    4: (0.85, 0.95, 1.00),   # celestial — near white cyan
+}
+r, g, b = band_colours.get(band, (0.5, 0.5, 0.5))
+op('constant1').par.colorr = r
+op('constant1').par.colorg = g
+op('constant1').par.colorb = b
 ```
 
-The upgraded table gives you more variation columns:
+### 5. Pitch HUD in TD (optional)
 
-- `core`
-- `spark`
-- `ribbon`
-- `dust`
+The Python preview already draws a pitch meter. If you want it in TD too:
 
-Use those to split particles into a brighter core, streak set, and faint dust layer without building three separate systems from scratch.
+Create **Text TOP** named `text_pitch`:
 
-## 5. Instancing Rig
-
-Create:
-
-```text
-tableDAT -> datto1 -> null_inst_source
-circle1 or sphere1 -> geo_particles
-cam1
-light1
-render1
+```python
+hz   = op('null_pitch_ctrl')['galaxy_pitch_hz']
+band = int(op('null_pitch_ctrl')['galaxy_pitch_band'])
+names = ['VOID', 'DEEP', 'FLOW', 'RADI', 'CELE']
+op('text_pitch').par.text = f"{int(hz)}Hz  [{names[band]}]"
 ```
 
-Recommended source geometry:
+---
 
-- `circle1` with low divisions if you want soft sprite-like points
-- `sphere1` if you want chunkier stars
+## Atmosphere Behaviour Reference
 
-In `geo_particles`, enable instancing from the table data:
+| Band | feedback | bloom | particle_speed | shimmer | fog | vignette |
+|---|---|---|---|---|---|---|
+| 0 VOID | 0.90 | 0.15 | 0.10 | 0.0 | 0.70 | 0.85 |
+| 1 DEEP | 0.78 | 0.35 | 0.28 | 0.05 | 0.40 | 0.55 |
+| 2 FLOWING | 0.60 | 0.55 | 0.55 | 0.15 | 0.10 | 0.20 |
+| 3 RADIANT | 0.45 | 0.78 | 0.75 | 0.35 | 0.03 | 0.05 |
+| 4 CELESTIAL | 0.30 | 1.00 | 1.00 | 1.00 | 0.0 | 0.0 |
 
-- Use `tx`, `ty`, `tz` as base offsets
-- Use `pscale`, `scale`, `phase`, and `spark` as variation inputs
-- Use `core` to make a brighter inner set
-- Use `ribbon` to stretch a subset of particles into streaks
-- Use `dust` to fade a far, low-alpha layer
+All values are smoothed in Python before transmission so transitions feel organic.
+Pitch velocity spikes shimmer and bloom on rising, deepens colour on falling.
 
-Drive the final transform with:
+---
 
-- base table offsets
-- plus `main/x` and `main/y` as center translation
-- plus time-based orbit from `phase`
-- plus `spin` for angular speed
-- plus `radius` as a multiplier on base offsets
+## Full Node List (v2.1 additions highlighted)
 
-## 6. Color Recipe
-
-You now have three easy color paths:
-
-1. Direct RGB:
-   Use `main/color_r`, `main/color_g`, and `main/color_b` to drive the material color directly.
-2. Hue Pair:
-   Use `main/hue` and `main/accent_hue` to mix two gradients in a Ramp TOP or GLSL MAT.
-3. Palette Lookup:
-   Use `main/palette` to blend between rows in `galaxy_palettes`.
-
-The nicest look usually comes from mixing 1 and 2:
-
-- material base from direct RGB
-- highlight band from `accent_hue`
-- palette only for larger scene mood shifts
-
-## 7. Motion Recipe
-
-For each instance, combine:
-
-- base spiral position
-- orbital rotation over time
-- `turbulence` as small noise offset
-- `vortex` as inward pull
-- `ribbon` as streak length
-- `shimmer` as sparkle density
-- `pulse` as slow gain wobble
-
-The look gets better fast if:
-
-- outer points drift more slowly
-- inner points are brighter and larger
-- `spark` particles respond harder to `shimmer`
-- `ribbon` particles stretch more when `velocity` rises
-
-## 8. Render and FX
-
-Use a dedicated render branch:
-
-```text
-render1 -> level_particles -> blur_particles -> feedback1 -> composite_glow
-```
-
-Suggested post chain:
-
-- `level_particles`: push highlights hard
-- `blur_particles`: run at reduced resolution if needed
-- `feedback1`: trail amount tied to `energy` and `ribbon`
-- `composite_glow`: `Add`
-
-Then:
-
-```text
-null_cam + composite_glow -> composite_final -> out1
-```
-
-Recommended controls:
-
-- `energy` -> feedback opacity
-- `halo` -> blur radius
-- `flare` -> core white-hot gain
-- `burst` -> one-frame pulse gain
-- `velocity` -> turbulence amplitude
-- `pinch` -> inner core brightness
-- `radius` -> overall galaxy spread
-- `spin` -> rotation speed
-- `pulse` -> subtle global exposure wobble
-
-## 9. Fusion Upgrades
-
-Once the one-hand rig feels good, add a two-hand branch:
-
-```text
-fusion_ctrl -> beam_geo / midpoint_core / portal_mask
-```
-
-Map:
-
-- `fusion/x`, `fusion/y` -> midpoint position
-- `fusion/bridge` -> beam opacity and thickness
-- `fusion/bloom` -> midpoint flare gain
-- `fusion/converge` -> portal size or merge-state
-- `fusion/vortex` -> twist deformation
-- `fusion/chaos` -> noise instability
-
-This is where the “summoning a galaxy between two hands” look really appears.
-
-## 10. Fast Preset Looks
-
-Try these first:
-
-1. `Aurora Bloom`: high `halo`, medium `ribbon`, cooler palette rows
-2. `Solar Flare`: high `flare`, high `burst`, warmer palette rows
-3. `Neon Prism`: higher `shimmer`, brighter accent hue
-4. `Binary Portal`: heavy use of the `fusion/*` branch
-
-More notes live in [EFFECT_RECIPES.md](EFFECT_RECIPES.md).
-
-## 11. Performance Guardrails
-
-- Keep the blur branch below full resolution
-- Stay around `800-1300` instances for the main pass
-- Smooth control channels instead of brute-forcing more particles
-- If FPS dips, reduce feedback resolution before reducing everything else
-- Split bright core and dust into two lighter passes before attempting a giant monolithic network
+| Node | Type | Purpose |
+|---|---|---|
+| cam_in | Video Device In TOP | Webcam or virtual camera |
+| oscin1 | OSC In CHOP | All OSC data from Python |
+| select_main | Select CHOP | Main hand control channels |
+| lag_main | Lag CHOP | Smooth hand position |
+| null_main_ctrl | Null CHOP | Clean hand output |
+| select_fingers | Select CHOP | Finger count |
+| null_finger_ctrl | Null CHOP | Finger count output |
+| select_speech | Select CHOP | Letter and animal OSC events |
+| null_speech_ctrl | Null CHOP | Speech event output |
+| select_effect_colour | Select CHOP | Effect RGB channels |
+| null_effect_colour | Null CHOP | Effect colour output |
+| **select_atmosphere** | **Select CHOP** | **All atmosphere params — NEW** |
+| **lag_atmosphere** | **Lag CHOP** | **Smooth atmosphere transitions — NEW** |
+| **null_atmosphere_ctrl** | **Null CHOP** | **Atmosphere output — NEW** |
+| **select_pitch** | **Select CHOP** | **Pitch hz/norm/band/confidence/velocity — NEW** |
+| **null_pitch_ctrl** | **Null CHOP** | **Pitch output — NEW** |
+| galaxy_instances | Table DAT | Spiral instance data |
+| geo_particles | Geo COMP | Instanced particles |
+| render1 | Render TOP | Galaxy render |
+| level_particles | Level TOP | Brightness driven by bloom |
+| blur_particles | Blur TOP | Soft glow |
+| feedback1 | Feedback TOP | Trail driven by feedback |
+| composite_glow | Composite TOP | Additive glow |
+| text_finger_count | Text TOP | Finger number HUD |
+| animal_image | Movie File In TOP | Animal image |
+| text_letter_display | Text TOP | Letter HUD |
+| composite_final | Composite TOP | Final mix |
+| out1 | Out TOP | Output |

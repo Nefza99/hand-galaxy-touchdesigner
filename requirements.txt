@@ -1,4 +1,18 @@
-mediapipe==0.10.21
-opencv-python==4.11.0.86
-python-osc==1.9.3
+# Hand Galaxy v2.1 — Python dependencies
+# Run: pip install -r requirements.txt
 
+# ── Core (v1) ───────────────────────────────────────────────────────────────
+mediapipe>=0.10.9
+opencv-python>=4.9.0
+python-osc>=1.8.3
+numpy>=1.26.0
+
+# ── Optional speech recognition extras ──────────────────────────────────────
+# Install manually if you want live speech recognition:
+# vosk>=0.3.45
+# pyaudio>=0.2.14
+
+# ── Optional high-precision pitch backend ───────────────────────────────────
+# The app includes a built-in numpy fallback, so aubio is optional.
+# Install manually for the lowest-latency/highest-confidence backend:
+# aubio>=0.4.9
