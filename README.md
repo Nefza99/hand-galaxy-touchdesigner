@@ -2,6 +2,8 @@
 
 Real-time hand tracking in Python with MediaPipe, streaming expressive OSC controls into TouchDesigner for a glowing, feedback-heavy galaxy effect.
 
+Current release version: `1.0.0`
+
 ## What You Get
 
 - Live webcam hand tracking with MediaPipe Hand Landmarker in `LIVE_STREAM` mode
@@ -32,6 +34,15 @@ hand-galaxy-touchdesigner/
 ```
 
 ## Quick Start
+
+If you downloaded the GitHub Release installer:
+
+1. Run `HandGalaxyTouchDesigner-Setup-v1.0.0.exe`.
+2. After install, double-click `Hand Galaxy` on your Desktop.
+3. Press `1` for the easiest first run in camera-preview mode.
+4. Press `2` only if you already have `OBS Virtual Camera` or `UnityCapture` installed for TouchDesigner.
+
+If you are running from source:
 
 1. Install Python 3.10+.
 2. Open PowerShell in this folder.
@@ -101,6 +112,8 @@ If Python opens the webcam directly, TouchDesigner usually cannot read the same 
 1. Use the Python preview only while building the interaction.
 2. Enable `--virtual-cam` and point TouchDesigner `Video Device In TOP` at the virtual camera.
 3. Use a second camera device for TD.
+
+Note: the release installer includes `pyvirtualcam`, but Windows still needs a virtual-camera backend such as `OBS Virtual Camera` or `UnityCapture` before TouchDesigner mode can open a virtual device.
 
 ## TouchDesigner Build
 

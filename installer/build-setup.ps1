@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $installerRoot = $PSScriptRoot
+$version = (Get-Content (Join-Path $root "VERSION.txt") -Raw).Trim()
 $payloadRoot = Join-Path $installerRoot "payload"
 $stageRoot = Join-Path $payloadRoot "app_stage"
 $payloadZip = Join-Path $payloadRoot "hand-galaxy-payload.zip"
@@ -12,13 +13,16 @@ $dotnetRoot = Join-Path $installerRoot ".dotnet"
 $dotnetInstall = Join-Path $installerRoot "dotnet-install.ps1"
 $project = Join-Path $installerRoot "SetupBootstrapper\\SetupBootstrapper.csproj"
 $publishDir = Join-Path $installerRoot "dist"
+$versionedExe = Join-Path $publishDir ("HandGalaxyTouchDesigner-Setup-v{0}.exe" -f $version)
 
 Write-Host "Preparing installer payload..."
 Remove-Item $stageRoot -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $payloadZip -Force -ErrorAction SilentlyContinue
+Remove-Item $versionedExe -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $stageRoot, $payloadRoot, $publishDir | Out-Null
 
 Copy-Item (Join-Path $root "README.md") (Join-Path $stageRoot "README.md")
+Copy-Item (Join-Path $root "VERSION.txt") (Join-Path $stageRoot "VERSION.txt")
 Copy-Item (Join-Path $root "requirements.txt") (Join-Path $stageRoot "requirements.txt")
 Copy-Item (Join-Path $root "requirements-virtualcam.txt") (Join-Path $stageRoot "requirements-virtualcam.txt")
 Copy-Item (Join-Path $root "src") (Join-Path $stageRoot "src") -Recurse
@@ -47,7 +51,9 @@ Write-Host "Publishing SETUP.exe..."
     -p:PublishTrimmed=false `
     -o $publishDir
 
+Copy-Item (Join-Path $publishDir "SETUP.exe") $versionedExe -Force
+
 Write-Host ""
 Write-Host "Build complete:"
 Write-Host (Join-Path $publishDir "SETUP.exe")
-
+Write-Host $versionedExe

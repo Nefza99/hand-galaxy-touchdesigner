@@ -11,7 +11,7 @@ from mediapipe.tasks.python import vision
 from .config import config_from_args, ensure_model_file
 from .gestures import GestureEngine, GestureFrame, HandTelemetry
 from .osc_bridge import OscBridge
-from .virtual_camera import VirtualCameraPublisher
+from .virtual_camera import VirtualCameraPublisher, VirtualCameraSetupError
 
 
 WINDOW_NAME = "Hand Galaxy Tracker"
@@ -45,18 +45,18 @@ class HandGalaxyApp:
         if not capture.isOpened():
             raise RuntimeError(f"Could not open webcam index {self.config.camera_index}")
 
-        self.virtual_camera.start()
-        options = vision.HandLandmarkerOptions(
-            base_options=python.BaseOptions(model_asset_path=str(model_path)),
-            running_mode=vision.RunningMode.LIVE_STREAM,
-            num_hands=self.config.max_hands,
-            min_hand_detection_confidence=self.config.min_detection_confidence,
-            min_hand_presence_confidence=self.config.min_presence_confidence,
-            min_tracking_confidence=self.config.min_tracking_confidence,
-            result_callback=self._on_result,
-        )
-
         try:
+            self.virtual_camera.start()
+            options = vision.HandLandmarkerOptions(
+                base_options=python.BaseOptions(model_asset_path=str(model_path)),
+                running_mode=vision.RunningMode.LIVE_STREAM,
+                num_hands=self.config.max_hands,
+                min_hand_detection_confidence=self.config.min_detection_confidence,
+                min_hand_presence_confidence=self.config.min_presence_confidence,
+                min_tracking_confidence=self.config.min_tracking_confidence,
+                result_callback=self._on_result,
+            )
+
             with vision.HandLandmarker.create_from_options(options) as landmarker:
                 while True:
                     if self.config.max_seconds and (time.perf_counter() - self._started_at) >= self.config.max_seconds:
@@ -172,7 +172,13 @@ class HandGalaxyApp:
 def main() -> None:
     config = config_from_args()
     app = HandGalaxyApp(config)
-    app.run()
+    try:
+        app.run()
+    except VirtualCameraSetupError as exc:
+        print()
+        print("HAND GALAXY // TOUCHDESIGNER MODE SETUP")
+        print(exc)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+class VirtualCameraSetupError(RuntimeError):
+    """Raised when virtual camera mode is requested but the backend is unavailable."""
+
+
 @dataclass(slots=True)
 class VirtualCameraPublisher:
     width: int
@@ -16,15 +20,28 @@ class VirtualCameraPublisher:
         if not self.enabled:
             return
 
-        import pyvirtualcam  # type: ignore
+        try:
+            import pyvirtualcam  # type: ignore
+        except ModuleNotFoundError as exc:
+            raise VirtualCameraSetupError(
+                "TouchDesigner mode needs the optional virtual camera package, but it is not installed."
+            ) from exc
 
         self._module = pyvirtualcam
-        self._camera = pyvirtualcam.Camera(
-            width=self.width,
-            height=self.height,
-            fps=self.fps,
-            fmt=pyvirtualcam.PixelFormat.BGR,
-        )
+        try:
+            self._camera = pyvirtualcam.Camera(
+                width=self.width,
+                height=self.height,
+                fps=self.fps,
+                fmt=pyvirtualcam.PixelFormat.BGR,
+            )
+        except RuntimeError as exc:
+            raise VirtualCameraSetupError(
+                "TouchDesigner mode needs a Windows virtual camera backend.\n"
+                "Install OBS Virtual Camera or UnityCapture, then try again.\n"
+                "If you only want hand tracking right now, launch the normal camera preview mode instead.\n\n"
+                f"Backend details: {exc}"
+            ) from exc
 
     def send(self, frame) -> None:
         if not self._camera:
