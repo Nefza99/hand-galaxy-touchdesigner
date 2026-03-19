@@ -1,0 +1,37 @@
+name: Release Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and publish
+        required: true
+        default: v1.0.0
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build versioned installer
+        shell: pwsh
+        run: .\installer\build-setup.ps1
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Hand Galaxy TouchDesigner ${{ env.RELEASE_TAG }}
+          files: installer/dist/HandGalaxyTouchDesigner-Setup-v*.exe
+          overwrite_files: true
+          fail_on_unmatched_files: true
