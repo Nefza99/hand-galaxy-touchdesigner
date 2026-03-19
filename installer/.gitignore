@@ -1,0 +1,7 @@
+payload/
+dist/
+.dotnet/
+sdk/
+SetupBootstrapper/bin/
+SetupBootstrapper/obj/
+dotnet-install.ps1

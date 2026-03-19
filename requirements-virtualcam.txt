@@ -1,0 +1,3 @@
+-r requirements.txt
+pyvirtualcam==0.14.0
+
